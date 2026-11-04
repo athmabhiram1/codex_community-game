@@ -1,0 +1,25 @@
+{
+  "project": "blendi/tidewater",
+  "version": "1.0.1",
+  "channel": "public",
+  "files": "dist",
+  "recipe": {
+    "mode": "browser",
+    "launch": {
+      "kind": "browser",
+      "entry": "index.html",
+      "component": "main"
+    },
+    "components": [
+      {
+        "id": "main",
+        "file": "",
+        "kind": "main",
+        "label": "Main files"
+      }
+    ],
+    "test": {
+      "minutes": 1
+    }
+  }
+}

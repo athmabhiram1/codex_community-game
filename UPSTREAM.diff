@@ -1,0 +1,400 @@
+diff --git a/index.html b/index.html
+index e51ed81..56fd12c 100644
+--- a/index.html
++++ b/index.html
+@@ -4,10 +4,9 @@
+ 	<meta charset="utf-8" />
+ 	<meta name="viewport" content="width=device-width, initial-scale=1" />
+ 	<title>Tidewater</title>
++	<link rel="icon" href="data:," />
+ 	<link rel="preload" as="image" href="ui/keyart-720.jpg" imagesrcset="ui/keyart-720.jpg 1280w, ui/keyart.jpg 2560w" imagesizes="100vw" />
+-	<link rel="preconnect" href="https://fonts.googleapis.com" />
+-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Caveat+Brush&family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
++	<link href="fonts/fonts.css" rel="stylesheet" />
+ 	<link rel="stylesheet" href="/src/ui/ui.css" />
+ 	<style>
+ 		html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+@@ -53,5 +52,6 @@
+ 		</div>
+ 	</div>
+ 	<script type="module" src="/src/main.js"></script>
++	<script src="patch-credits.js" defer></script>
+ </body>
+ </html>
+diff --git a/public/fonts/fonts.css b/public/fonts/fonts.css
+new file mode 100644
+index 0000000..551dc0d
+--- /dev/null
++++ b/public/fonts/fonts.css
+@@ -0,0 +1,163 @@
++/* Self-hosted fonts (were loaded from Google Fonts). Files from Fontsource 5.3.0, SIL OFL 1.1: see fonts/LICENSE-*.txt */
++/* inter-latin-ext-400-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./inter-latin-ext-400-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* inter-latin-400-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./inter-latin-400-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* inter-latin-ext-500-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 500;
++  src: url(./inter-latin-ext-500-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* inter-latin-500-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 500;
++  src: url(./inter-latin-500-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* inter-latin-ext-600-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 600;
++  src: url(./inter-latin-ext-600-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* inter-latin-600-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 600;
++  src: url(./inter-latin-600-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* inter-latin-ext-700-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 700;
++  src: url(./inter-latin-ext-700-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* inter-latin-700-normal */
++@font-face {
++  font-family: 'Inter';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 700;
++  src: url(./inter-latin-700-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* jetbrains-mono-latin-ext-400-normal */
++@font-face {
++  font-family: 'JetBrains Mono';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./jetbrains-mono-latin-ext-400-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* jetbrains-mono-latin-400-normal */
++@font-face {
++  font-family: 'JetBrains Mono';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./jetbrains-mono-latin-400-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* jetbrains-mono-latin-ext-500-normal */
++@font-face {
++  font-family: 'JetBrains Mono';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 500;
++  src: url(./jetbrains-mono-latin-ext-500-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* jetbrains-mono-latin-500-normal */
++@font-face {
++  font-family: 'JetBrains Mono';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 500;
++  src: url(./jetbrains-mono-latin-500-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* caveat-brush-latin-ext-400-normal */
++@font-face {
++  font-family: 'Caveat Brush';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./caveat-brush-latin-ext-400-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* caveat-brush-latin-400-normal */
++@font-face {
++  font-family: 'Caveat Brush';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./caveat-brush-latin-400-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* kalam-latin-ext-400-normal */
++@font-face {
++  font-family: 'Kalam';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./kalam-latin-ext-400-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* kalam-latin-400-normal */
++@font-face {
++  font-family: 'Kalam';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 400;
++  src: url(./kalam-latin-400-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
++/* kalam-latin-ext-700-normal */
++@font-face {
++  font-family: 'Kalam';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 700;
++  src: url(./kalam-latin-ext-700-normal.woff2) format('woff2');
++  unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
++}
++/* kalam-latin-700-normal */
++@font-face {
++  font-family: 'Kalam';
++  font-style: normal;
++  font-display: swap;
++  font-weight: 700;
++  src: url(./kalam-latin-700-normal.woff2) format('woff2');
++  unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
++}
+diff --git a/public/patch-credits.js b/public/patch-credits.js
+new file mode 100644
+index 0000000..c7e211e
+--- /dev/null
++++ b/public/patch-credits.js
+@@ -0,0 +1,44 @@
++// Patch credits overlay: a small "i" button, bottom left, that toggles the game's credits.
++(() => {
++	const C = {
++		title: 'Tidewater',
++		author: 'Dan Greenheck',
++		license: 'MIT (code). Assets: CC0, MIT and OFL; see CREDITS.md',
++		source: 'github.com/dgreenheck/tidewater',
++	};
++	const root = document.createElement('div');
++	root.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483647;pointer-events:none;font:13px/1.4 system-ui,sans-serif;color:#eef';
++	const btn = document.createElement('button');
++	btn.type = 'button';
++	btn.textContent = 'i';
++	btn.setAttribute('aria-label', 'Credits');
++	btn.style.cssText = 'pointer-events:auto;width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(10,16,24,.45);color:#fff;font:italic 600 14px/22px Georgia,serif;padding:0;cursor:pointer;opacity:.55';
++	const panel = document.createElement('div');
++	panel.hidden = true;
++	panel.style.cssText = 'pointer-events:auto;position:absolute;left:0;bottom:32px;width:270px;padding:10px 12px;border-radius:8px;background:rgba(10,16,24,.88);border:1px solid rgba(255,255,255,.18);user-select:text';
++	const line = (text, css) => {
++		const p = document.createElement('div');
++		p.textContent = text;
++		if (css) p.style.cssText = css;
++		panel.appendChild(p);
++	};
++	line(C.title, 'font-weight:700;font-size:15px');
++	line('by ' + C.author);
++	line('License: ' + C.license);
++	line('Source: ' + C.source, 'word-break:break-all');
++	line('Added to Patch by Patch. The author can claim it.', 'margin-top:6px;opacity:.7');
++	btn.addEventListener('click', () => {
++		panel.hidden = !panel.hidden;
++		btn.style.opacity = panel.hidden ? '.55' : '1';
++	});
++	btn.addEventListener('mouseenter', () => (btn.style.opacity = '1'));
++	btn.addEventListener('mouseleave', () => (btn.style.opacity = panel.hidden ? '.55' : '1'));
++	const stop = (e) => e.stopPropagation();
++	for (const el of [btn, panel])
++		for (const t of ['keydown', 'keyup', 'keypress', 'mousedown', 'mouseup', 'click', 'dblclick', 'pointerdown', 'pointerup', 'pointermove', 'mousemove', 'wheel', 'contextmenu', 'touchstart', 'touchend'])
++			el.addEventListener(t, stop);
++	// keyboard focus on the button must not leave Space/Enter reaching the game
++	btn.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); btn.click(); } });
++	root.append(panel, btn);
++	(document.body || document.documentElement).appendChild(root);
++})();
+diff --git a/src/App.js b/src/App.js
+index d25378d..ddeb9cd 100644
+--- a/src/App.js
++++ b/src/App.js
+@@ -134,7 +134,8 @@ export class App {
+ 
+ 		// ---------------------------------------------------------------- island
+ 		await progress( 0.06, 'Shaping the island…' );
+-		this.terrainData = new TerrainData();
++		// Patch port: generated in steps, yielding a frame between them (keeps each main-thread block short)
++		this.terrainData = await TerrainData.createAsync( () => progress( 0.06, 'Shaping the island…' ) );
+ 		this.colliders = new Colliders();
+ 		// the village flattens building pads into the heightmap: build it before any terrain
+ 		// data is derived (shore field, GPU textures, meshes)
+@@ -150,10 +151,13 @@ export class App {
+ 
+ 		await progress( 0.19, 'Rolling in the swell…' );
+ 		this.shoreField = computeShoreField( this.terrainData, { res: 512, swellDir: [ WORLD.swellDir.x, WORLD.swellDir.y ] } );
++		await progress( 0.2, 'Rolling in the swell…' ); // Patch port: yield between the heavy steps
+ 		this.terrainGPU = new TerrainGPU( this.terrainData, this.shoreField );
+ 		// terrain and rocks apply the heightfield sun shadow (long hill shadows) in their own lighting
+ 		this.terrain = new Terrain( { scene, terrainData: this.terrainData, terrainGPU: this.terrainGPU, renderer } );
++		await progress( 0.21, 'Rolling in the swell…' );
+ 		this.rocks = new Rocks( { scene, terrain: this.terrain, village: this.village, colliders: this.colliders } );
++		await progress( 0.22, 'Rolling in the swell…' );
+ 		// driftwood (CC0 photoscans), wrack, pebbles and village clutter
+ 		this.debris = new Debris( { scene, terrain: this.terrain, village: this.village, vegetation: this.vegetation, rocks: this.rocks, colliders: this.colliders } );
+ 		// these apply the heightfield sun shadow in their own lighting model (see UnderwaterLighting)
+diff --git a/src/main.js b/src/main.js
+index 5967dee..426d94d 100644
+--- a/src/main.js
++++ b/src/main.js
+@@ -21,17 +21,8 @@ app.init( ( p, text, until ) => ui.setLoading( p, text, until ) ).then( async ()
+ 	app.ui = new AppUI( app, ui );
+ 	ui.setLoading( 1, 'Ready' );
+ 	await ui.hideLoader();
+-	// frame-time benchmark and reference shots (see core/Bench.js): it drives the frames itself
+-	if ( app.qs.has( 'bench' ) ) {
+-
+-		window.__bench = new ( await import( './core/Bench.js' ) ).Bench( app );
+-		if ( app.qs.has( 'auto' ) ) window.__job = window.__bench.auto( app.qs.get( 'auto' ), { runs: Number( app.qs.get( 'runs' ) ) || 1 } );
+-		// ?bench&shots=view1,view2[&tag=name][&dt=seconds][&seq=n&every=frames]: reference shots of the named views only (core/DebugViews.js; dt > 0: the clock runs, e.g. for the eased lens flare)
+-		// &wdbg=N: the water shader's debug view (WaterMaterial debugMode) in the shots
+-		if ( app.qs.has( 'wdbg' ) && app.waterMaterial ) app.waterMaterial.debugMode.value = Number( app.qs.get( 'wdbg' ) );
+-		if ( app.qs.has( 'shots' ) ) window.__job = window.__bench.shots( app.qs.get( 'shots' ).split( ',' ), { tag: app.qs.get( 'tag' ) || 'shot', dt: Number( app.qs.get( 'dt' ) ) || 0, seq: Number( app.qs.get( 'seq' ) ) || 1, every: Number( app.qs.get( 'every' ) ) || 1 } );
+-
+-	} else app.start();
++	// Patch port: the ?bench benchmark (core/Bench.js, which POSTs results to a local capture server) is not part of this build
++	app.start();
+ 	ui.showStartOverlay( () => {
+ 
+ 		app.input.requestLock();
+diff --git a/src/world/TerrainData.js b/src/world/TerrainData.js
+index 36e562f..c14761a 100644
+--- a/src/world/TerrainData.js
++++ b/src/world/TerrainData.js
+@@ -43,7 +43,8 @@ const VILLAGE = WORLD.village.center;
+ //            rubble, then the rock / sand / path / gully masks
+ export class TerrainData {
+ 
+-	constructor( seed = 7 ) {
++	// Patch port: { defer: true } leaves the generation to createAsync(), which yields between its steps
++	constructor( seed = 7, { defer = false } = {} ) {
+ 
+ 		this.size = WORLD.terrainSize;
+ 		this.res = RES;
+@@ -67,11 +68,23 @@ export class TerrainData {
+ 		this.timings = {};
+ 		this._F = { wx: 0, wz: 0, f170: 0, und: 0, deep: 0, E: 0, gx: 0, gz: 0 };
+ 		this._out = { h: 0, rock: 0, d: 0, bz: 0, carve: 0 };
++		if ( defer ) return;
+ 		this.generate();
+ 		this.buildMinMax();
+ 
+ 	}
+ 
++	// The same terrain, generated in steps with `between()` awaited after each one, so the page's main
++	// thread is never blocked for the whole generation (about 1.3 s on a fast desktop CPU).
++	static async createAsync( between, seed = 7 ) {
++
++		const t = new TerrainData( seed, { defer: true } );
++		for ( const step of t.generateSteps() ) await between( step );
++		t.buildMinMax();
++		return t;
++
++	}
++
+ 	// signed coast distance (m): > 0 water, < 0 land
+ 	coastDistance( x, z ) {
+ 
+@@ -263,6 +276,12 @@ export class TerrainData {
+ 
+ 	generate() {
+ 
++		for ( const _ of this.generateSteps() ); // eslint-disable-line no-unused-vars
++
++	}
++
++	* generateSteps() {
++
+ 		const T = this.timings;
+ 		let t = performance.now();
+ 		const tick = ( name ) => {
+@@ -316,6 +335,7 @@ export class TerrainData {
+ 		}
+ 
+ 		tick( 'gridA' );
++		yield 'gridA'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		// ---- grid B: 2 m
+ 		const NB = RES / 2, TB = this.size / NB;
+@@ -351,6 +371,7 @@ export class TerrainData {
+ 		}
+ 
+ 		tick( 'gridB' );
++		yield 'gridB'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		// ---- grid C: 1 m
+ 		const H = upsample2( Bh, NB, true );
+@@ -360,23 +381,29 @@ export class TerrainData {
+ 		const CV = upsample2( Bcarve, NB, false );
+ 		this.heights = H;
+ 		tick( 'upsample' );
++		yield 'upsample'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		this._detail( H, D, R0, BZ );
+ 		tick( 'detail' );
++		yield 'detail'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		this._features( H, D, R0, BZ );
+ 		tick( 'features' );
++		yield 'features'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		this._scarp( H, D, R0, BZ );
+ 		tick( 'scarp' );
++		yield 'scarp'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		this._seabed( H, R0 );
+ 		tick( 'seabed' );
++		yield 'seabed'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		this._masks( H, D, R0, BZ, CV );
+ 		// soften the 1 m masks so material transitions never show the texel grid
+ 		this.rock = boxBlur( this.rock, RES, RES, 1 );
+ 		tick( 'masks' );
++		yield 'masks'; t = performance.now(); // the wait is not part of the step's time
+ 
+ 		// fade to deep ocean floor at the domain border
+ 		const res = RES;
+@@ -396,6 +423,7 @@ export class TerrainData {
+ 		}
+ 
+ 		tick( 'border' );
++		yield 'border'; t = performance.now(); // the wait is not part of the step's time
+ 		T.total = Object.values( T ).reduce( ( a, b ) => a + b, 0 );
+ 
+ 	}
