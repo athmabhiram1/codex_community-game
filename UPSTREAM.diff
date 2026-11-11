@@ -242,10 +242,18 @@ index 0000000..c7e211e
 +	(document.body || document.documentElement).appendChild(root);
 +})();
 diff --git a/src/App.js b/src/App.js
-index d25378d..ddeb9cd 100644
+index d25378d..0e449df 100644
 --- a/src/App.js
 +++ b/src/App.js
-@@ -134,7 +134,8 @@ export class App {
+@@ -8,6 +8,7 @@ import { Input } from './core/Input.js';
+ import { CDLOD } from './core/CDLOD.js';
+ import { G } from './core/Globals.js';
+ import { Profiler } from './core/Profiler.js';
++import { Quality } from './core/Quality.js';
+ import { SceneRenderer, LAYERS } from './core/SceneRenderer.js';
+ import { DEPTH_FORMAT } from './engine/render/SceneRenderer.js';
+ import { installDebugViews } from './core/DebugViews.js';
+@@ -134,7 +135,8 @@ export class App {
  
  		// ---------------------------------------------------------------- island
  		await progress( 0.06, 'Shaping the island…' );
@@ -255,7 +263,7 @@ index d25378d..ddeb9cd 100644
  		this.colliders = new Colliders();
  		// the village flattens building pads into the heightmap: build it before any terrain
  		// data is derived (shore field, GPU textures, meshes)
-@@ -150,10 +151,13 @@ export class App {
+@@ -150,10 +152,13 @@ export class App {
  
  		await progress( 0.19, 'Rolling in the swell…' );
  		this.shoreField = computeShoreField( this.terrainData, { res: 512, swellDir: [ WORLD.swellDir.x, WORLD.swellDir.y ] } );
@@ -269,6 +277,215 @@ index d25378d..ddeb9cd 100644
  		// driftwood (CC0 photoscans), wrack, pebbles and village clutter
  		this.debris = new Debris( { scene, terrain: this.terrain, village: this.village, vegetation: this.vegetation, rocks: this.rocks, colliders: this.colliders } );
  		// these apply the heightfield sun shadow in their own lighting model (see UnderwaterLighting)
+@@ -332,8 +337,11 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
+ 		} );
+ 		this.post = new PostFX( renderer, { sceneRenderer: this.sceneRenderer, camera, underwater: this.underwater, clouds: this.clouds, sunDir: this.atmosphere.sunDir, haze: this.haze } );
+ 		G.exposure.value = this.settings.exposure;
+-		if ( qs.has( 'scale' ) ) this.settings.renderScale = Number( qs.get( 'scale' ) ) || 1;
+-		this.setRenderScale( this.settings.renderScale );
++		// Patch port: the render scale comes from Patch's performance mode, the player's saved choice or the
++		// step-down for slower computers (core/Quality.js; ?scale still overrides)
++		this.quality = new Quality( this );
++		this.setRenderScale( this.quality.initialScale() );
++		this.quality.apply();
+ 
+ 		// ---------------------------------------------------------------- audio
+ 		// recorded field recordings (public/audio, credits in public/audio/CREDITS.md); ?noAudio turns it off
+@@ -555,6 +563,7 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
+ 
+ 	start() {
+ 
++		this.quality.start();
+ 		this.engine.start( ( dt, t ) => this.frame( dt, t ) );
+ 
+ 	}
+@@ -601,6 +610,7 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
+ 		FrameUniforms.fields.frameIndex.value = GPU.frame;
+ 		const s = this.settings;
+ 		this.updateFPS( dt );
++		this.quality.update( dt );
+ 		G.dt.value = dt;
+ 		G.time.value += dt;
+ 		if ( s.timeSpeed !== 0 ) s.timeOfDay = ( s.timeOfDay + dt * s.timeSpeed + 24 ) % 24;
+@@ -701,8 +711,8 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
+ 
+ 	}
+ 
+-	// Internal render resolution relative to the output (0.5..1), set by hand: changing it re-creates
+-	// the scene / post / cloud targets, so nothing adjusts it automatically.
++	// Internal render resolution relative to the output (0.5..1): changing it re-creates the scene / post /
++	// cloud targets, so it changes rarely (by hand, by Patch's quality level, or a step-down: core/Quality.js).
+ 	setRenderScale( v ) {
+ 
+ 		const scale = MathUtils.clamp( Math.round( v * 20 ) / 20, 0.5, 1 );
+diff --git a/src/core/Quality.js b/src/core/Quality.js
+new file mode 100644
+index 0000000..2ed80d2
+--- /dev/null
++++ b/src/core/Quality.js
+@@ -0,0 +1,162 @@
++// Patch port: the render scale for slower computers, and the Performance settings kept between visits.
++//
++// The scale the game starts at, first that applies:
++//   ?scale=<0.5..1> in the URL (testing).
++//   Patch's performance mode (the frame is named `patch:quality=<level>`): window.patch.quality caps it,
++//   high 100%, medium 75%, low 50%, and a 'qualitychange' lowers it while the game plays. A Render scale
++//   the player picked by hand can go lower still. Patch measures and lowers the level itself there, so the
++//   step-down below stays off.
++//   The player's own Render scale (Settings > Performance), saved.
++//   The step-down: once loaded, a median under 40 fps over 5 s lowers it 100% -> 75% -> 50%, saved. It
++//   stops for good once the player picks a Render scale by hand.
++// Shadows and Water reflections are saved when the player changes them.
++const KEY = 'tidewater.quality';
++const STEPS = [ 1, 0.75, 0.5 ];
++const LEVEL_SCALE = { high: 1, medium: 0.75, low: 0.5 };
++const SLOW_FPS = 40;
++const WINDOW = 5; // seconds of frames per measurement
++const SETTLE = 3; // seconds skipped after loading and after each step (the targets are rebuilt)
++const FAST_WINDOWS = 3; // measurements at or above SLOW_FPS that end the step-down for this visit
++
++export class Quality {
++
++	constructor( app ) {
++
++		this.app = app;
++		this.saved = load();
++		const named = typeof window !== 'undefined' && /^patch:quality=(low|medium|high)$/.test( String( window.name || '' ) );
++		const patch = typeof window !== 'undefined' ? window.patch : null;
++		this.patch = named && patch && typeof patch.quality === 'string' ? patch : null;
++		this.urlScale = app.qs.has( 'scale' ) ? Number( app.qs.get( 'scale' ) ) || 1 : null;
++		this.auto = ! this.patch && this.urlScale === null && ! this.saved.manual;
++		this._running = false;
++		this._frames = [];
++		this._t = 0;
++		this._fast = 0;
++
++	}
++
++	// the render scale to start at
++	initialScale() {
++
++		if ( this.urlScale !== null ) return this.urlScale;
++		const own = this.saved.manual ? this.saved.renderScale ?? 1 : 1;
++		if ( this.patch ) return Math.min( LEVEL_SCALE[ this.patch.quality ] ?? 1, own );
++		if ( this.saved.manual ) return own;
++		return STEPS.includes( this.saved.auto ) ? this.saved.auto : 1;
++
++	}
++
++	// shadows and water reflections as the player left them, and Patch lowering the level live
++	apply() {
++
++		const app = this.app;
++		if ( this.saved.shadows === false ) app.shadows.enabled = false;
++		if ( this.saved.ssr === false ) app.waterMaterial.params.ssr.value = 0;
++		if ( this.patch ) this.patch.addEventListener( 'qualitychange', () => {
++
++			const cap = LEVEL_SCALE[ this.patch.quality ] ?? 1;
++			if ( app.settings.renderScale > cap ) app.setRenderScale( cap );
++
++		} );
++
++	}
++
++	// the frame loop runs from here on: the step-down starts measuring
++	start() {
++
++		this._running = this.auto && this.app.settings.renderScale > STEPS[ STEPS.length - 1 ];
++		this._t = - SETTLE;
++
++	}
++
++	// a choice made in Settings > Performance (renderScale, shadows or ssr)
++	choose( key, value ) {
++
++		this.saved[ key ] = value;
++		if ( key === 'renderScale' ) {
++
++			this.saved.manual = true;
++			this.auto = false;
++			this._running = false;
++
++		}
++
++		save( this.saved );
++
++	}
++
++	update( dt ) {
++
++		if ( ! this._running ) return;
++		if ( typeof document !== 'undefined' && document.visibilityState === 'hidden' ) {
++
++			this._t = - SETTLE;
++			this._frames.length = 0;
++			return;
++
++		}
++
++		this._t += dt;
++		if ( this._t <= 0 ) return;
++		this._frames.push( dt );
++		if ( this._t < WINDOW ) return;
++		const f = this._frames.sort( ( a, b ) => a - b );
++		const fps = 1 / f[ f.length >> 1 ];
++		this._frames.length = 0;
++		this._t = 0;
++		if ( fps >= SLOW_FPS ) {
++
++			if ( ++ this._fast >= FAST_WINDOWS ) this._running = false;
++			return;
++
++		}
++
++		this._fast = 0;
++		const now = this.app.settings.renderScale;
++		const next = STEPS.find( ( s ) => s < now - 0.001 );
++		if ( next === undefined ) {
++
++			this._running = false;
++			return;
++
++		}
++
++		this.app.setRenderScale( next );
++		this.saved.auto = next;
++		save( this.saved );
++		this._t = - SETTLE;
++		if ( next === STEPS[ STEPS.length - 1 ] ) this._running = false;
++
++	}
++
++}
++
++function load() {
++
++	try {
++
++		const v = JSON.parse( localStorage.getItem( KEY ) || '{}' );
++		return v && typeof v === 'object' ? v : {};
++
++	} catch {
++
++		return {};
++
++	}
++
++}
++
++function save( v ) {
++
++	try {
++
++		localStorage.setItem( KEY, JSON.stringify( v ) );
++
++	} catch {
++
++		// storage can be missing or full: the choice lasts this visit only
++
++	}
++
++}
 diff --git a/src/main.js b/src/main.js
 index 5967dee..426d94d 100644
 --- a/src/main.js
@@ -293,6 +510,59 @@ index 5967dee..426d94d 100644
  	ui.showStartOverlay( () => {
  
  		app.input.requestLock();
+diff --git a/src/ui/AppUI.js b/src/ui/AppUI.js
+index 2c1e19d..859fcbe 100644
+--- a/src/ui/AppUI.js
++++ b/src/ui/AppUI.js
+@@ -49,7 +49,7 @@ export class AppUI {
+ 			saturation: app.post.params.saturation.value,
+ 			contrast: app.post.params.contrast.value,
+ 			grain: app.post.params.grain.value,
+-			renderScale: app.settings.renderScale,
++			renderScale: 1, // the controls' defaults; set to the live values once they're built
+ 			shadows: true,
+ 		};
+ 
+@@ -227,7 +227,12 @@ export class AppUI {
+ 		live.addInfo( { label: 'CPU per frame', get: () => `${ ( app.cpuMs || 0 ).toFixed( 2 ) } ms` } );
+ 		live.addInfo( { label: 'Render size', get: () => `${ app.sceneRenderer.width } × ${ app.sceneRenderer.height }` } );
+ 		const quality = perf.addFolder( 'Quality', { icon: 'layers' } );
+-		quality.addSlider( { label: 'Render scale', object: s, key: 'renderScale', min: 0.5, max: 1, step: 0.05, format: ( v ) => `${ Math.round( v * 100 ) }%`, tooltip: 'Internal resolution; the temporal upscaler reconstructs the full output resolution.', onChange: ( v ) => app.setRenderScale( v ) } );
++		quality.addSlider( { label: 'Render scale', object: s, key: 'renderScale', min: 0.5, max: 1, step: 0.05, format: ( v ) => `${ Math.round( v * 100 ) }%`, tooltip: 'Internal resolution; the temporal upscaler reconstructs the full output resolution.', onChange: ( v ) => {
++
++			app.setRenderScale( v );
++			app.quality.choose( 'renderScale', app.settings.renderScale );
++
++		} } );
+ 		// anti-aliasing: the TAA with 2..16 jitter positions averaged per pixel, or none
+ 		s.aa = app.post.aaMode === 'none' ? 0 : app.post.taau.jitterPhaseOverride;
+ 		quality.addSelect( { label: 'Anti-aliasing', object: s, key: 'aa', tooltip: 'Temporal anti-aliasing: each pixel averages this many sub-pixel sample positions over successive frames (it also smooths dithered fades and shadow noise). More samples cost nothing per frame but take a few more frames to settle.', options: [ { label: 'Off', value: 0 }, { label: '2x', value: 2 }, { label: '4x', value: 4 }, { label: '8x', value: 8 }, { label: '16x', value: 16 } ], onChange: ( v ) => {
+@@ -237,9 +242,23 @@ export class AppUI {
+ 			if ( n > 0 ) app.post.taau.jitterPhaseOverride = n;
+ 
+ 		} } );
+-		quality.addToggle( { label: 'Shadows', object: s, key: 'shadows', onChange: ( v ) => { app.shadows.enabled = v; } } );
++		quality.addToggle( { label: 'Shadows', object: s, key: 'shadows', onChange: ( v ) => {
++
++			app.shadows.enabled = v;
++			app.quality.choose( 'shadows', v );
++
++		} } );
+ 		s.ssr = true;
+-		quality.addToggle( { label: 'Water reflections', object: s, key: 'ssr', tooltip: 'Screen-space reflections of the pier, boats and hills on the water.', onChange: ( v ) => { app.waterMaterial.params.ssr.value = v ? 1 : 0; } } );
++		quality.addToggle( { label: 'Water reflections', object: s, key: 'ssr', tooltip: 'Screen-space reflections of the pier, boats and hills on the water.', onChange: ( v ) => {
++
++			app.waterMaterial.params.ssr.value = v ? 1 : 0;
++			app.quality.choose( 'ssr', v );
++
++		} } );
++		// Patch port: the live values (a saved choice or Patch's quality level may differ from the defaults)
++		s.renderScale = app.settings.renderScale;
++		s.shadows = app.shadows.enabled;
++		s.ssr = app.waterMaterial.params.ssr.value > 0.5;
+ 
+ 		this._t = 0;
+ 
 diff --git a/src/world/TerrainData.js b/src/world/TerrainData.js
 index 36e562f..c14761a 100644
 --- a/src/world/TerrainData.js

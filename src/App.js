@@ -8,6 +8,7 @@ import { Input } from './core/Input.js';
 import { CDLOD } from './core/CDLOD.js';
 import { G } from './core/Globals.js';
 import { Profiler } from './core/Profiler.js';
+import { Quality } from './core/Quality.js';
 import { SceneRenderer, LAYERS } from './core/SceneRenderer.js';
 import { DEPTH_FORMAT } from './engine/render/SceneRenderer.js';
 import { installDebugViews } from './core/DebugViews.js';
@@ -336,8 +337,11 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
 		} );
 		this.post = new PostFX( renderer, { sceneRenderer: this.sceneRenderer, camera, underwater: this.underwater, clouds: this.clouds, sunDir: this.atmosphere.sunDir, haze: this.haze } );
 		G.exposure.value = this.settings.exposure;
-		if ( qs.has( 'scale' ) ) this.settings.renderScale = Number( qs.get( 'scale' ) ) || 1;
-		this.setRenderScale( this.settings.renderScale );
+		// Patch port: the render scale comes from Patch's performance mode, the player's saved choice or the
+		// step-down for slower computers (core/Quality.js; ?scale still overrides)
+		this.quality = new Quality( this );
+		this.setRenderScale( this.quality.initialScale() );
+		this.quality.apply();
 
 		// ---------------------------------------------------------------- audio
 		// recorded field recordings (public/audio, credits in public/audio/CREDITS.md); ?noAudio turns it off
@@ -559,6 +563,7 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
 
 	start() {
 
+		this.quality.start();
 		this.engine.start( ( dt, t ) => this.frame( dt, t ) );
 
 	}
@@ -605,6 +610,7 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
 		FrameUniforms.fields.frameIndex.value = GPU.frame;
 		const s = this.settings;
 		this.updateFPS( dt );
+		this.quality.update( dt );
 		G.dt.value = dt;
 		G.time.value += dt;
 		if ( s.timeSpeed !== 0 ) s.timeOfDay = ( s.timeOfDay + dt * s.timeSpeed + 24 ) % 24;
@@ -705,8 +711,8 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
 
 	}
 
-	// Internal render resolution relative to the output (0.5..1), set by hand: changing it re-creates
-	// the scene / post / cloud targets, so nothing adjusts it automatically.
+	// Internal render resolution relative to the output (0.5..1): changing it re-creates the scene / post /
+	// cloud targets, so it changes rarely (by hand, by Patch's quality level, or a step-down: core/Quality.js).
 	setRenderScale( v ) {
 
 		const scale = MathUtils.clamp( Math.round( v * 20 ) / 20, 0.5, 1 );

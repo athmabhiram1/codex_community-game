@@ -49,7 +49,7 @@ export class AppUI {
 			saturation: app.post.params.saturation.value,
 			contrast: app.post.params.contrast.value,
 			grain: app.post.params.grain.value,
-			renderScale: app.settings.renderScale,
+			renderScale: 1, // the controls' defaults; set to the live values once they're built
 			shadows: true,
 		};
 
@@ -227,7 +227,12 @@ export class AppUI {
 		live.addInfo( { label: 'CPU per frame', get: () => `${ ( app.cpuMs || 0 ).toFixed( 2 ) } ms` } );
 		live.addInfo( { label: 'Render size', get: () => `${ app.sceneRenderer.width } × ${ app.sceneRenderer.height }` } );
 		const quality = perf.addFolder( 'Quality', { icon: 'layers' } );
-		quality.addSlider( { label: 'Render scale', object: s, key: 'renderScale', min: 0.5, max: 1, step: 0.05, format: ( v ) => `${ Math.round( v * 100 ) }%`, tooltip: 'Internal resolution; the temporal upscaler reconstructs the full output resolution.', onChange: ( v ) => app.setRenderScale( v ) } );
+		quality.addSlider( { label: 'Render scale', object: s, key: 'renderScale', min: 0.5, max: 1, step: 0.05, format: ( v ) => `${ Math.round( v * 100 ) }%`, tooltip: 'Internal resolution; the temporal upscaler reconstructs the full output resolution.', onChange: ( v ) => {
+
+			app.setRenderScale( v );
+			app.quality.choose( 'renderScale', app.settings.renderScale );
+
+		} } );
 		// anti-aliasing: the TAA with 2..16 jitter positions averaged per pixel, or none
 		s.aa = app.post.aaMode === 'none' ? 0 : app.post.taau.jitterPhaseOverride;
 		quality.addSelect( { label: 'Anti-aliasing', object: s, key: 'aa', tooltip: 'Temporal anti-aliasing: each pixel averages this many sub-pixel sample positions over successive frames (it also smooths dithered fades and shadow noise). More samples cost nothing per frame but take a few more frames to settle.', options: [ { label: 'Off', value: 0 }, { label: '2x', value: 2 }, { label: '4x', value: 4 }, { label: '8x', value: 8 }, { label: '16x', value: 16 } ], onChange: ( v ) => {
@@ -237,9 +242,23 @@ export class AppUI {
 			if ( n > 0 ) app.post.taau.jitterPhaseOverride = n;
 
 		} } );
-		quality.addToggle( { label: 'Shadows', object: s, key: 'shadows', onChange: ( v ) => { app.shadows.enabled = v; } } );
+		quality.addToggle( { label: 'Shadows', object: s, key: 'shadows', onChange: ( v ) => {
+
+			app.shadows.enabled = v;
+			app.quality.choose( 'shadows', v );
+
+		} } );
 		s.ssr = true;
-		quality.addToggle( { label: 'Water reflections', object: s, key: 'ssr', tooltip: 'Screen-space reflections of the pier, boats and hills on the water.', onChange: ( v ) => { app.waterMaterial.params.ssr.value = v ? 1 : 0; } } );
+		quality.addToggle( { label: 'Water reflections', object: s, key: 'ssr', tooltip: 'Screen-space reflections of the pier, boats and hills on the water.', onChange: ( v ) => {
+
+			app.waterMaterial.params.ssr.value = v ? 1 : 0;
+			app.quality.choose( 'ssr', v );
+
+		} } );
+		// Patch port: the live values (a saved choice or Patch's quality level may differ from the defaults)
+		s.renderScale = app.settings.renderScale;
+		s.shadows = app.shadows.enabled;
+		s.ssr = app.waterMaterial.params.ssr.value > 0.5;
 
 		this._t = 0;
 

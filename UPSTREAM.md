@@ -14,6 +14,7 @@ So that it runs on Patch, where nothing loads from other hosts and the main thre
 - **Fonts:** `index.html` loaded them from another host. They're now in `public/fonts/`, with their licences.
 - **Benchmark:** `src/main.js` no longer imports `core/Bench.js`, which posted timings to a local server.
 - **Loading:** `TerrainData.generate()` ran as one task of about 1.25 s. `generateSteps()` and `createAsync()` split it up with the same output, and `App.init` yields between its heavy stages.
+- **Slower computers (1.0.2):** `src/core/Quality.js` sets the render scale the temporal upscaler already had. Patch's performance mode caps it (`window.patch.quality`: high 100%, medium 75%, low 50%, lowered live on `qualitychange`). Elsewhere, a median under 40 fps over 5 s once loaded steps it down 100% → 75% → 50%. The player's own Render scale wins and stops the step-down, and it, Shadows and Water reflections are kept in localStorage (`tidewater.quality`). At 100% the picture is the author's, unchanged.
 - **Favicon:** an inline one, since a missing one shows as a console error.
 - **Credits:** `public/patch-credits.js` is the "i" button. `public/CREDITS.md` is the author's `CREDITS.md`, with its paths pointed at the build's folders and the Fonts section updated. `public/LICENSE` is his licence.
 

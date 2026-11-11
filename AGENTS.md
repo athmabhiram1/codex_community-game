@@ -24,6 +24,7 @@ Any browser you script has to be muted and must not take the real mouse: fake po
 
 - There's no three.js here: rendering is the engine in `src/engine/`, in WGSL.
 - The first load compiles several hundred shaders. Patch's test wants the main thread free within 3 s at a time, so `src/App.js` and `TerrainData.createAsync()` yield between steps: keep long work split up. The changes the port made are marked `Patch port` in the code.
+- The render scale (50-100%, rebuilt to full size by the temporal upscaler) follows Patch's `window.patch.quality`, the player's saved choice and a step-down for slow computers: `src/core/Quality.js` says which wins.
 - Everything in `public/` ships as it is. It's the source of `dist/`, with `public/CREDITS.md` and `public/LICENSE`, and the top-level `CREDITS.md` and `LICENSE` are copies: change both.
 - Each folder of assets has its own credits (`public/audio/CREDITS.md`, `public/models/debris/CREDITS.md`, `public/models/props/CREDITS.md`). Anything added has to be open enough to ship in a repo anyone can fork: CC0, CC-BY or a permissive licence, credited there and in `public/patch-credits.js`.
 - `public/clouds/LICENSING.md` is the author's, and lists textures that aren't here. The cloud noise files are his, under this repo's MIT licence.
