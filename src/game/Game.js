@@ -6,6 +6,7 @@ import { habitatAt, pickSpecies, rollWeight, biteDelay } from './Bites.js';
 import { CatchMinigame } from './CatchMinigame.js';
 import { GameState } from './GameState.js';
 import { FishingRod } from './FishingRod.js';
+import { LiftNetFishing } from './LiftNetFishing.js';
 import { FishStand } from './FishStand.js';
 import { Chandlery } from './Chandlery.js';
 import { CatchDisplay } from './CatchDisplay.js';
@@ -31,11 +32,13 @@ export class Game {
 		this.app = app;
 		this.state = new GameState();
 		this.state.load();
+		this.liftNetFishing = new LiftNetFishing();
 		this.rod = new FishingRod( { scene: app.scene, camera: app.camera, query: app.query, terrain: app.terrainData, audio: app.audio } );
 		this.rod.onLand = ( where ) => this.onBobberLanded( where );
 		this.stand = new FishStand( { scene: app.scene, terrain: app.terrainData, colliders: app.colliders } );
 		this.display = new CatchDisplay( { scene: app.scene, stall: this.stand.iceFish() } );
 		this.landing = null; // { species, kg } while the caught fish swings in view
+		this._liftNetCatchCard = null;
 		this.chandlery = new Chandlery( { scene: app.scene, terrain: app.terrainData, colliders: app.colliders, material: this.stand.material } );
 		this.vendors = [ this.stand.vendor, this.chandlery.vendor ];
 		// boat upgrades: engine (thrust / top speed) and deck floodlights for night fishing
@@ -200,12 +203,19 @@ export class Game {
 	// shared opts for the bite model: tide phase, wreck / mangrove distance, storm, lamp
 	_biteOpts() {
 
-		const tideLevel = this.app.tide ? this.app.tide.level : 0;
 		const b = this.rod ? this.rod.bobber : { x: 0, z: 0 };
+		return this._biteOptsAt( b );
+
+	}
+
+	_biteOptsAt( point ) {
+
+		const tideLevel = this.app.tide ? this.app.tide.level : 0;
+		const x = point.x ?? 0, z = point.z ?? 0;
 		return {
 			tideLevel,
-			wreckDist: Math.hypot( b.x - TIDE.wreck.x, b.z - TIDE.wreck.z ) - TIDE.wreck.r,
-			mangroveDist: Math.hypot( b.x - TIDE.mangrove.x, b.z - TIDE.mangrove.z ) - TIDE.mangrove.r,
+			wreckDist: Math.hypot( x - TIDE.wreck.x, z - TIDE.wreck.z ) - TIDE.wreck.r,
+			mangroveDist: Math.hypot( x - TIDE.mangrove.x, z - TIDE.mangrove.z ) - TIDE.mangrove.r,
 			storm: Math.min( 1, Math.max( 0, G.windSpeed.value / 26 ) ),
 			lamp: this._lamp.level,
 		};
@@ -245,6 +255,103 @@ export class Game {
 		if ( ! lh || ! p || p.mode !== 'walk' ) return null;
 		const d = Math.hypot( p.position.x - lh.shrinePos.x, p.position.z - lh.shrinePos.z );
 		return d < 4 ? lh : null;
+
+	}
+
+	_updateLiftNet( dt, inp, player, canFish ) {
+
+		const station = this.app.village && this.app.village.liftNet;
+		const result = this.liftNetFishing.update( dt );
+		if ( station ) station.update( dt, this.liftNetFishing.fraction, this.liftNetFishing.state );
+		if ( result ) this._showLiftNetCatch( result );
+		if ( ! station || ! this._canUseLiftNet( station, player, canFish ) ) return;
+
+		const action = this._setLiftNetPrompt( player );
+		if ( ! action || ! inp.hit( 'KeyE' ) ) return;
+		if ( action === 'lower' ) this._lowerLiftNet();
+		else this._raiseLiftNet( station );
+
+	}
+
+	_canUseLiftNet( station, player, canFish ) {
+
+		if ( ! canFish || player.mode !== 'walk' || ! station.inRange( player.position ) ) return false;
+		const uiBusy = this.hud && ( this.hud.catchOpen || this.hud.invOpen || this.hud.standOpen );
+		const nearbyVendor = this.vendors.some( ( vendor ) => vendor.inRange( player.position ) );
+		return ! ( this.fight || this._cardDismissed || this.landing || player.busy || uiBusy || nearbyVendor || this._shrineNear( player ) );
+
+	}
+
+	_setLiftNetPrompt( player ) {
+
+		const state = this.liftNetFishing.state;
+		switch ( state ) {
+
+			case 'raised':
+				player.prompt = { key: 'E', text: 'Lower the Chinese lift net' };
+				return 'lower';
+			case 'lowering':
+				player.prompt = { key: '...', text: 'The lift net is lowering' };
+				return null;
+			case 'soaking':
+				if ( this.liftNetFishing.soakRemaining > 0 ) {
+
+					player.prompt = { key: '...', text: `Let the net soak: ${ Math.ceil( this.liftNetFishing.soakRemaining ) }s` };
+					return null;
+
+				}
+				player.prompt = { key: 'E', text: 'Haul the Chinese lift net' };
+				return 'raise';
+			default:
+				player.prompt = { key: '...', text: state === 'raising' ? 'The net is coming up' : 'The lift net is resetting' };
+				return null;
+
+		}
+
+	}
+
+	_lowerLiftNet() {
+
+		if ( this.liftNetFishing.lower() ) this.toast( 'Lowering the lift net. Wait for fish to gather.', 2400 );
+
+	}
+
+	_raiseLiftNet( station ) {
+
+		const point = station.waterPoint;
+		const tideLevel = this.app.tide ? this.app.tide.level : 0;
+		const depth = Math.max( 0, tideLevel - this.app.terrainData.heightAt( point.x, point.z ) );
+		const habitat = this.habitatAtPoint( point.x, point.z, depth );
+		if ( this.liftNetFishing.raise( habitat, this.hour, this._biteOptsAt( point ) ) ) this.toast( 'Hauling the net. Checking the catch.', 1700 );
+
+	}
+
+	_showLiftNetCatch( result ) {
+
+		if ( ! result ) {
+
+			this.toast( 'The net came up empty · try again when more water covers the shallows', 3200 );
+			return;
+
+		}
+
+		const entry = this.state.addFish( result.species, result.kg, this.hour );
+		const info = this.state.lastCatch;
+		const station = this.app.village && this.app.village.liftNet;
+		if ( station && this.app.audio && this.app.audio.fishSplash ) this.app.audio.fishSplash( station.waterPoint, 0.55 );
+		if ( this.hud ) {
+
+			this.hud.showCatch( info, CATCH_CARD_MS );
+			this._liftNetCatchCard = { elapsed: 0 };
+
+		}
+		else {
+
+			const name = FISH[ result.species ].name;
+			if ( entry ) this.toast( `${ info.newSpecies ? 'New species! ' : '' }${ name } · ${ entry.kg.toFixed( 2 ) } kg · $${ entry.value }`, 3600 );
+			else this.toast( `${ name } · no room in the ${ this.state.upgrades.hold > 0 ? 'hold' : 'cooler' }, let it go`, 3600 );
+
+		}
 
 	}
 
@@ -308,7 +415,7 @@ export class Game {
 		const lDown = lmb && ! this._lmb, lUp = ! lmb && this._lmb, rDown = rmb && ! this._rmb;
 		this._lmb = lmb;
 		this._rmb = rmb;
-		const panelOpen = this.hud && ( this.hud.invOpen || this.hud.standOpen );
+		const panelOpen = this.hud && ( this.hud.invOpen || this.hud.standOpen || this.hud.catchOpen );
 
 		if ( rod.equipped && ! panelOpen ) {
 
@@ -378,11 +485,24 @@ export class Game {
 			}
 
 		} else if ( this.landing || this.display.shown ) this.endLanding();
+		if ( this._liftNetCatchCard && this.hud && this.hud.catchOpen ) {
+
+			this._liftNetCatchCard.elapsed += dt;
+			if ( lDown || inp.hit( 'KeyE' ) || inp.hit( 'Escape' ) || this._liftNetCatchCard.elapsed > CATCH_CARD_MS / 1000 ) {
+
+				this.hud.hideCatch();
+				this._liftNetCatchCard = null;
+				this._cardDismissed = true;
+
+			}
+
+		}
 
 		p.busy = rod.lineInWater || rod.state === 'windup';
 
 		this.updateBoat( dt );
 		this._time += dt;
+		this._updateLiftNet( dt, inp, p, can );
 
 		// test autopilot: a faster tide so high and low water both show, one real
 		// donation through donate(), and one real stormy night high tide so the
