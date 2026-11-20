@@ -154,12 +154,12 @@ body {
 }
 
 .loader-title {
-	margin: 0 -0.3em 0 -0.04em; /* optical: the trailing tracking and the T's side bearing */
-	/* always fits its column: 9 letters at 0.3em tracking are ~9.2em wide, trailing tracking included */
-	font-size: min(136px, 10.4cqi);
+	margin: 0 -0.12em 0 -0.04em; /* optical: the trailing tracking and the T's side bearing */
+	/* Size against the complete wordmark so “ISLE” stays inside the loader column. */
+	font-size: min(136px, 9.2cqi);
 	white-space: nowrap;
 	font-weight: 600;
-	letter-spacing: 0.3em;
+	letter-spacing: 0.12em;
 	line-height: 0.95;
 	color: transparent;
 	background: linear-gradient(180deg, #ffffff 20%, #fff0dc 70%, #ffd7a8 100%);
@@ -369,12 +369,6 @@ body {
 		background:
 			linear-gradient(0deg, rgba(3, 7, 11, 0.94) 0%, rgba(3, 7, 11, 0.7) 40%, rgba(3, 7, 11, 0.15) 66%, transparent 80%),
 			radial-gradient(140% 90% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
-	}
-
-	.loader-title {
-		letter-spacing: 0.22em;
-		margin-right: -0.22em;
-		font-size: min(136px, 11.2cqi);
 	}
 
 }

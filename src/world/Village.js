@@ -12,6 +12,7 @@ import {
 	bench, ropeCoil, pathLight, lampPost, bucket, wreck,
 } from './Props.js';
 import { Lighthouse } from './lighthouse/Lighthouse.js';
+import { ChineseLiftNet } from './ChineseLiftNet.js';
 
 // Tropical fishing village: timber pier with a T-head, stilt fishing huts on the beach,
 // a boathouse, a boardwalk up to a small market plaza and a dozen painted cottages on
@@ -136,6 +137,9 @@ export class Village {
 		// Ghosttide Isle: the lighthouse keeper's tower on the west headland. It only reads
 		// terrain heights (no flattening, no layout changes); its light joins the village lights.
 		this.lighthouse = new Lighthouse( { scene, terrain, colliders: this.colliders, lights: this.lights } );
+		this.liftNet = new ChineseLiftNet( { terrain, colliders: this.colliders, materials: this.materials, parent: this.group } );
+		this.meshes.push( ...this.liftNet.meshes );
+		for ( const mesh of this.liftNet.meshes ) mesh.onBeforeRender = () => this.textures.bake();
 		scene.add( this.group );
 
 	}
