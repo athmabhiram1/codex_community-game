@@ -1,5 +1,7 @@
 # Credits
 
+Ghosttide Isle – remix of Tidewater by Dan Greenheck (MIT), port by Patch.
+
 Tidewater by Dan Greenheck (DRG Software Solutions LLC). Source: https://github.com/dgreenheck/tidewater
 (commit 4811ba48d795197de5621985f404e765c0b7c0ef). This file is the game's own `CREDITS.md`, with its paths
 pointed at this build's folders and the Fonts section updated for the bundled fonts. Added to Patch by Patch.

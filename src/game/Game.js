@@ -1,5 +1,6 @@
 import { Vector3, Color } from '../engine/index.js';
-import { WORLD } from '../world/WorldLayout.js';
+import { WORLD, TIDE } from '../world/WorldLayout.js';
+import { G } from '../core/Globals.js';
 import { FISH } from './FishTable.js';
 import { habitatAt, pickSpecies, rollWeight, biteDelay } from './Bites.js';
 import { CatchMinigame } from './CatchMinigame.js';
@@ -45,6 +46,24 @@ export class Game {
 		this._fuelOut = false;
 		this._sonarT = 0;
 		this._sonar = null;
+		// Ghosttide Isle: the lighthouse keeper's lamp. Donations of fish feed it (level 0..1,
+		// saved per browser); its light lures the legendary ghosttide at night on a high tide.
+		this._lamp = { level: 0, donated: 0 };
+		this._loadLamp();
+		this._lampLight = null;
+		if ( app.localLights ) this._wireLampLight( app.localLights );
+		this._tideHigh = false;
+		this._tideLow = false;
+		this._tideLogged = false;
+		this._legendToastAt = - 1e9;
+		this._time = 0;
+		// Patch publish test (?patch-test=1): the autopilot in update() drives the
+		// real systems so the checklist can observe them. Players never see it.
+		this._testMode = !! ( app.qs && app.qs.has( 'patch-test' ) );
+		this._testTide = false;
+		this._testDonated = false;
+		this._testLegend = false;
+		this._testNoIntro = false;
 		this.hud = null;
 		this.fight = null; // CatchMinigame while a fish is on
 		this.bite = null; // { phase: 'wait' | 'nibble' | 'take', t, nibbles, species, kg }
@@ -121,6 +140,111 @@ export class Game {
 		}
 
 		return l;
+
+	}
+
+	// ---- the lighthouse keeper's lamp (Ghosttide Isle)
+	get lampLevel() {
+
+		return this._lamp.level;
+
+	}
+
+	// Bites opts read this directly (pickSpecies lamp gating)
+	get lamp() {
+
+		return this._lamp.level;
+
+	}
+
+	_loadLamp() {
+
+		try {
+
+			if ( typeof localStorage === 'undefined' ) return;
+			const raw = localStorage.getItem( 'ghosttide.lamp.v1' );
+			if ( ! raw ) return;
+			const d = JSON.parse( raw );
+			if ( Number.isFinite( d.level ) ) this._lamp.level = Math.min( 1, Math.max( 0, d.level ) );
+			if ( Number.isFinite( d.donated ) ) this._lamp.donated = d.donated | 0;
+
+		} catch ( e ) { /* storage blocked: the lamp just starts dark */ }
+
+	}
+
+	_saveLamp() {
+
+		try {
+
+			if ( typeof localStorage === 'undefined' ) return;
+			localStorage.setItem( 'ghosttide.lamp.v1', JSON.stringify( { v: 1, level: this._lamp.level, donated: this._lamp.donated } ) );
+
+		} catch ( e ) { /* storage full or blocked: keep playing */ }
+
+	}
+
+	// the lamp's real light: a LocalLights lantern (range 40) whose intensity and colour
+	// follow the donation level (App.js lantern pattern: color 1.0,0.72,0.42, flicker)
+	_wireLampLight( lights ) {
+
+		const lh = this.app && this.app.village && this.app.village.lighthouse;
+		if ( ! lh ) return;
+		this._lampLight = lights.add( {
+			position: lh.lampPos, color: new Color( 1.0, 0.72, 0.42 ), intensity: 2, range: 40,
+			kind: 'lamp', flicker: 0.08,
+		} );
+		lh.applyLight( this._lampLight, this._lamp.level );
+
+	}
+
+	// shared opts for the bite model: tide phase, wreck / mangrove distance, storm, lamp
+	_biteOpts() {
+
+		const tideLevel = this.app.tide ? this.app.tide.level : 0;
+		const b = this.rod ? this.rod.bobber : { x: 0, z: 0 };
+		return {
+			tideLevel,
+			wreckDist: Math.hypot( b.x - TIDE.wreck.x, b.z - TIDE.wreck.z ) - TIDE.wreck.r,
+			mangroveDist: Math.hypot( b.x - TIDE.mangrove.x, b.z - TIDE.mangrove.z ) - TIDE.mangrove.r,
+			storm: Math.min( 1, Math.max( 0, G.windSpeed.value / 26 ) ),
+			lamp: this._lamp.level,
+		};
+
+	}
+
+	// E at the offering stone (walk mode, within 4 m): the cheapest fish in the cooler
+	// feeds the lamp: lamp += fishValue / 500, capped at 1
+	donate() {
+
+		const s = this.state;
+		if ( ! s.inventory.length ) {
+
+			this.toast( 'The lamp drinks only fish · your cooler is empty', 2200 );
+			return false;
+
+		}
+
+		let cheapest = s.inventory[ 0 ];
+		for ( const f of s.inventory ) if ( f.value < cheapest.value ) cheapest = f;
+		const value = cheapest.value;
+		s.release( cheapest.id );
+		this._lamp.level = Math.min( 1, this._lamp.level + value / 500 );
+		this._lamp.donated ++;
+		this._saveLamp();
+		const lh = this.app && this.app.village && this.app.village.lighthouse;
+		if ( lh ) lh.setLamp( this._lamp.level );
+		this.toast( `The lamp drinks it · light grows (${ Math.round( this._lamp.level * 100 ) }%)`, 2600 );
+		if ( this._lamp.donated === 1 ) console.log( 'pass lamp-donates' );
+		return true;
+
+	}
+
+	_shrineNear( p ) {
+
+		const lh = this.app && this.app.village && this.app.village.lighthouse;
+		if ( ! lh || ! p || p.mode !== 'walk' ) return null;
+		const d = Math.hypot( p.position.x - lh.shrinePos.x, p.position.z - lh.shrinePos.z );
+		return d < 4 ? lh : null;
 
 	}
 
@@ -258,9 +382,96 @@ export class Game {
 		p.busy = rod.lineInWater || rod.state === 'windup';
 
 		this.updateBoat( dt );
+		this._time += dt;
+
+		// test autopilot: a faster tide so high and low water both show, one real
+		// donation through donate(), and one real stormy night high tide so the
+		// legend hint fires through the normal per-frame path
+		if ( this._testMode ) {
+
+			// no intro cards in the test: tips must be free to show
+			if ( this.guide && ! this._testNoIntro ) {
+
+				this._testNoIntro = true;
+				this.guide._wait = -1;
+				if ( this.guide.open ) this.guide.close(); else this.guide.seen.intro = true;
+
+			}
+			if ( ! this._testTide && this.app.tide ) { this._testTide = true; this.app.tide.period = 8; }
+			if ( ! this._testDonated && this._time > 1 ) {
+
+				this._testDonated = true;
+				if ( ! this.state.inventory.length ) this.state.addFish( 'mullet', 1.0, this.hour );
+				this.donate();
+
+			}
+			if ( ! this._testLegend && this._time > 1.5 ) {
+
+				this._testLegend = true;
+				this.app.settings.timeOfDay = 23.5;
+				G.windSpeed.value = 26;
+				if ( this.app.tide ) this.app.tide.phase = Math.PI / 2;
+
+			}
+
+		}
+
+		// the lighthouse keeper's lamp: sweep the beam, and keep its long light on the donations
+		{
+			const lh = this.app.village && this.app.village.lighthouse;
+			if ( lh ) {
+
+				if ( ! this._lampLight && this.app.localLights ) this._wireLampLight( this.app.localLights );
+				lh.update( dt );
+				if ( this._lampLight ) lh.applyLight( this._lampLight, this._lamp.level );
+
+			}
+		}
+
+		// the tide's full cycle, and the thing that circles the reef on stormy high tides at night
+		{
+			const t = this.app.tide;
+			if ( t ) {
+
+				if ( t.isHigh || t.level > 0.35 ) this._tideHigh = true;
+				if ( t.isLow || t.level < - 0.35 ) this._tideLow = true;
+				if ( ! this._tideLogged && this._tideHigh && this._tideLow ) {
+
+					this._tideLogged = true;
+					console.log( 'pass tide-cycles' );
+
+				}
+
+				const night = G.night.value > 0.6;
+				const storm = Math.min( 1, Math.max( 0, G.windSpeed.value / 26 ) ) > 0.7;
+				if ( night && storm && ( t.isHigh || t.level > 0.35 || t.kingTide ) ) {
+
+					if ( this.guide ) this.guide.tip( 'legend' );
+					if ( this._time - this._legendToastAt > 75 ) {
+
+						this._legendToastAt = this._time;
+						this.toast( 'Something circles the reef…', 3600 );
+
+					}
+
+				}
+
+			}
+		}
 
 		// the traders
 		for ( const v of this.vendors ) v.update( dt, p.mode === 'walk' ? p.position : null );
+		// the offering stone: E donates the cheapest fish to the lamp (walk mode, within 4 m)
+		{
+			const lh = this._shrineNear( p );
+			const busy = this.fight || this._cardDismissed || ( this.hud && ( this.hud.catchOpen || this.hud.invOpen || this.hud.standOpen ) );
+			if ( lh && can ) {
+
+				if ( ! p.prompt ) p.prompt = { key: 'E', text: 'Offer a fish to the lamp' };
+				if ( ! busy && inp.hit( 'KeyE' ) && this.donate() ) this._cardDismissed = true; // this frame's E belongs to the shrine
+
+			}
+		}
 		this.updateVendors( inp, p );
 
 		// prompts when the player has nothing to say
@@ -407,7 +618,14 @@ export class Game {
 		const rect = ( x0, x1, z0, z1 ) => Math.hypot( Math.max( x0 - b.x, 0, b.x - x1 ), Math.max( z0 - b.z, 0, b.z - z1 ) );
 		const walk = rect( P.x - P.width / 2, P.x + P.width / 2, P.zStart, P.zEnd );
 		const head = rect( P.x - P.headWidth / 2, P.x + P.headWidth / 2, P.zEnd - P.headDepth, P.zEnd );
-		return habitatAt( { depth, reefDist, pierDist: Math.min( walk, head ) } );
+		const opts = {
+			tideLevel: this.app.tide ? this.app.tide.level : 0,
+			wreckDist: Math.hypot( x - TIDE.wreck.x, z - TIDE.wreck.z ) - TIDE.wreck.r,
+			mangroveDist: Math.hypot( x - TIDE.mangrove.x, z - TIDE.mangrove.z ) - TIDE.mangrove.r,
+			storm: Math.min( 1, Math.max( 0, G.windSpeed.value / 26 ) ),
+			lamp: this._lamp.level,
+		};
+		return habitatAt( { depth, reefDist, pierDist: Math.min( walk, head ) }, opts );
 
 	}
 
@@ -426,7 +644,7 @@ export class Game {
 
 		}
 
-		this.bite = { phase: 'wait', t: biteDelay( this.habitat(), this.hour ) };
+		this.bite = { phase: 'wait', t: biteDelay( this.habitat(), this.hour, Math.random, this._biteOpts() ) };
 
 	}
 
@@ -446,7 +664,7 @@ export class Game {
 		if ( b.phase === 'wait' ) {
 
 			const h = this.habitat();
-			const species = pickSpecies( h, this.hour );
+			const species = pickSpecies( h, this.hour, Math.random, this._biteOpts() );
 			if ( ! species ) {
 
 				b.t = 8;
@@ -478,7 +696,7 @@ export class Game {
 		} else if ( b.phase === 'take' ) {
 
 			this.toast( 'It took the bait and ran', 1800 );
-			this.bite = { phase: 'wait', t: biteDelay( this.habitat(), this.hour ) };
+			this.bite = { phase: 'wait', t: biteDelay( this.habitat(), this.hour, Math.random, this._biteOpts() ) };
 
 		}
 

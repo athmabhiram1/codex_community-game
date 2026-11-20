@@ -1,8 +1,8 @@
 // Patch credits overlay: a small "i" button, bottom left, that toggles the game's credits.
 (() => {
 	const C = {
-		title: 'Tidewater',
-		author: 'Dan Greenheck',
+		title: 'Ghosttide Isle',
+		author: 'Dan Greenheck (Tidewater) · Ghosttide Isle remix',
 		license: 'MIT (code). Assets: CC0, MIT and OFL; see CREDITS.md',
 		source: 'github.com/dgreenheck/tidewater',
 	};

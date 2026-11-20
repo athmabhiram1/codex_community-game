@@ -1,4 +1,4 @@
-import { WORLD } from '../world/WorldLayout.js';
+import { WORLD, TIDE } from '../world/WorldLayout.js';
 import { STAND } from './FishStand.js';
 import { CHANDLERY } from './Chandlery.js';
 
@@ -37,6 +37,10 @@ const CSS = /* css */`
 .gm-mk.is-joe > i { background: var(--tw-sun); }
 .gm-mk.is-marta > i { background: var(--tw-aqua); }
 .gm-mk.is-boat > i { background: #f2efe6; }
+/* Ghosttide Isle: the lighthouse, the wreck (low water) and the mangroves (high water) */
+.gm-mk.is-light > i { background: #ffd27a; }
+.gm-mk.is-wreck > i { background: #d89a6a; }
+.gm-mk.is-mangrove > i { background: #7fd6a0; }
 .gm-mk > b { position: absolute; left: 0; top: 0; width: 0; height: 0; border-left: calc(5 * var(--tw-u)) solid transparent; border-right: calc(5 * var(--tw-u)) solid transparent;
 	border-bottom: calc(7 * var(--tw-u)) solid rgba(255,255,255,0.9); margin: calc(-19 * var(--tw-u)) 0 0 calc(-5 * var(--tw-u)); transform-origin: calc(5 * var(--tw-u)) calc(19 * var(--tw-u)); display: none; }
 .gm-mk.is-edge > b { display: block; }
@@ -68,6 +72,9 @@ const ICON = {
 	fish: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 12c3-4 7-6 11-6 3 0 5 2 7 4l-2 2 2 2c-2 2-4 4-7 4-4 0-8-2-11-6Zm12-1.2a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Z"/></svg>',
 	anchor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v13M7 11h10M4 14c1 4 4 6 8 6s7-2 8-6"/></svg>',
 	boat: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v9H6l6-9Zm1 2 5 7h-5V5ZM3 14h18l-3 5H6l-3-5Z"/></svg>',
+	light: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 2h6l1.2 17H7.8L9 2Z"/><circle cx="12" cy="5.5" r="1.6"/></svg>',
+	wreck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg>',
+	mangrove: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="7" cy="14" r="3"/><circle cx="12" cy="10" r="3.2"/><circle cx="17" cy="14" r="3"/></svg>',
 };
 
 const h = ( tag, cls, html ) => {
@@ -136,6 +143,15 @@ export class Minimap {
 				return p.mode === 'boat' || p.mode === 'deck';
 
 			} },
+			// Ghosttide Isle: the lighthouse, the wreck (low water) and the mangroves (high water)
+			{ id: 'light', ...mk( 'light', ICON.light ), pos: () => {
+
+				const lh = game.app.village && game.app.village.lighthouse;
+				return lh ? { x: lh.position.x, z: lh.position.z } : { x: TIDE.lighthouse.x, z: TIDE.lighthouse.z };
+
+			} },
+			{ id: 'wreck', ...mk( 'wreck', ICON.wreck ), pos: () => ( { x: TIDE.wreck.x, z: TIDE.wreck.z } ) },
+			{ id: 'mangrove', ...mk( 'mangrove', ICON.mangrove ), pos: () => ( { x: TIDE.mangrove.x, z: TIDE.mangrove.z } ) },
 		];
 		this.north = h( 'div', 'gm-map-n', 'N' );
 		this.marks.append( this.north );

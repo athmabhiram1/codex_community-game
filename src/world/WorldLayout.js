@@ -34,3 +34,13 @@ export const WORLD = {
 	// Incoming swell direction (unit, travel direction)
 	swellDir: new THREE.Vector2( - 0.12, - 1 ).normalize(),
 };
+
+// Living-tide landmarks: the wreck dries out near low water, the mangrove
+// creek is only navigable near high water, the lighthouse keeps the west head.
+export const TIDE = {
+	period: 180, // s for one full cycle (3 minutes)
+	amplitude: 0.55, // m either side of mean sea level
+	wreck: { x: - 95, z: 75, r: 18 },
+	mangrove: { x: 120, z: - 20, r: 22 },
+	lighthouse: { x: - 160, z: - 80 },
+};

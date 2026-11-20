@@ -4,9 +4,16 @@ import { FISH, FISH_IDS } from './FishTable.js';
 //   depth     water depth under the bobber (m)
 //   reefDist  horizontal distance to the reef edge (m, < 0 inside it)
 //   pierDist  horizontal distance to the pier (piles / head) (m)
+//   opts (optional, 2nd arg): { tideLevel, wreckDist, mangroveDist, storm }
+//     tideLevel < -0.3 near the wreck boosts reef; tideLevel > 0.3 near the
+//     mangroves boosts shallows. Old 3-field calls still work.
 // Returns weights per water type (they overlap: a spot can be both pier and bay).
-export function habitatAt( { depth, reefDist, pierDist } ) {
+export function habitatAt( { depth, reefDist, pierDist, tide, tideLevel, wreckDist, mangroveDist, storm }, opts = {} ) {
 
+	const o = opts || {};
+	const tl = o.tideLevel ?? tideLevel ?? tide ?? 0;
+	const wd = o.wreckDist ?? wreckDist ?? 999;
+	const md = o.mangroveDist ?? mangroveDist ?? 999;
 	const h = { shallows: 0, reef: 0, pier: 0, bay: 0, deep: 0 };
 	if ( depth < 0.25 ) return h; // on the sand
 	h.shallows = smooth( 3.5, 1.0, depth );
@@ -14,6 +21,9 @@ export function habitatAt( { depth, reefDist, pierDist } ) {
 	h.pier = smooth( 9, 2, pierDist ) * smooth( 0.6, 2, depth );
 	h.bay = smooth( 1.5, 4, depth ) * ( 1 - smooth( 18, 30, depth ) );
 	h.deep = smooth( 16, 28, depth );
+	// Ghosttide Isle: tide-gated bonuses (wreck exposes at low tide, mangroves flood at high)
+	h.reef += ( tl < - 0.3 && wd < 25 ? 1.2 : 0 );
+	h.shallows += ( tl > 0.3 && md < 25 ? 1.0 : 0 );
 	return h;
 
 }
@@ -37,8 +47,20 @@ export function activity( pref, hour ) {
 
 // Weighted pick of the species that bites here; null when nothing lives here.
 // rng: () => [0, 1)
-export function pickSpecies( habitat, hour, rng = Math.random ) {
+// opts: { storm (0..1), lamp (0..1 boat light), tideLevel } — the legendary
+//   ghosttide only bites at night with storm or lamp light on a high tide;
+//   otherwise its weight is zeroed. Old 3-arg calls still work.
+export function pickSpecies( habitat, hour, rng = Math.random, opts = {} ) {
 
+	let storm = 0, lamp = 0, tideLevel = 0;
+	if ( typeof opts === 'number' ) storm = opts;
+	else if ( opts ) {
+
+		storm = opts.storm ?? 0;
+		lamp = opts.lamp ?? opts.light ?? 0;
+		tideLevel = opts.tideLevel ?? opts.tide ?? 0;
+
+	}
 	let total = 0;
 	const w = [];
 	for ( const id of FISH_IDS ) {
@@ -49,6 +71,27 @@ export function pickSpecies( habitat, hour, rng = Math.random ) {
 		const x = hw * f.rarity * activity( f.time, hour );
 		w.push( x );
 		total += x;
+
+	}
+
+	// Ghosttide Isle: legendary gating for ghosttide
+	const gi = FISH_IDS.indexOf( 'ghosttide' );
+	if ( gi >= 0 ) {
+
+		const isNight = hour < 5.5 || hour > 19.5;
+		const gated = isNight && ( storm > 0.7 || lamp > 0.5 ) && tideLevel > 0.35;
+		if ( ! gated ) {
+
+			total -= w[ gi ];
+			w[ gi ] = 0;
+
+		} else {
+
+			const boost = 1 + storm * 2 + lamp * 2;
+			total += w[ gi ] * ( boost - 1 );
+			w[ gi ] *= boost;
+
+		}
 
 	}
 
@@ -75,16 +118,28 @@ export function rollWeight( id, rng = Math.random ) {
 }
 
 // Seconds until the next bite at this spot: richer water bites sooner. Infinity when barren.
-export function biteDelay( habitat, hour, rng = Math.random ) {
+// storm (4th arg, number or { storm }): a high storm bites slightly faster (mean * 0.85).
+export function biteDelay( habitat, hour, rng = Math.random, stormOrOpts = 0 ) {
 
+	let storm = 0;
+	let r = rng;
+	if ( typeof r !== 'function' ) {
+
+		if ( typeof r === 'object' && r !== null ) storm = r.storm ?? 0;
+		else if ( typeof r === 'number' ) storm = r;
+		r = Math.random;
+
+	} else if ( typeof stormOrOpts === 'number' ) storm = stormOrOpts;
+	else if ( stormOrOpts ) storm = stormOrOpts.storm ?? 0;
 	let rich = 0;
 	for ( const k in habitat ) rich += habitat[ k ];
 	if ( rich < 0.05 ) return Infinity;
 	// open water between the named habitats still has fish: never much slower than a poor spot
 	rich = Math.max( rich, 0.35 );
 	const light = hour > 6 && hour < 19 ? 1 : 0.8;
-	const mean = 8 / ( Math.min( rich, 1.6 ) * light );
-	return 2 + - Math.log( 1 - rng() * 0.98 ) * mean * 0.6;
+	let mean = 8 / ( Math.min( rich, 1.6 ) * light );
+	if ( storm > 0.7 ) mean *= 0.85;
+	return 2 + - Math.log( 1 - r() * 0.98 ) * mean * 0.6;
 
 }
 

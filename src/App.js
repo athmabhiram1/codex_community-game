@@ -58,6 +58,7 @@ import { AirHaze } from './post/AirHaze.js';
 import { FlyCamera } from './player/FlyCamera.js';
 import { Player } from './player/Player.js';
 import { Game } from './game/Game.js';
+import { Tide } from './game/Tide.js';
 import { STAND } from './game/FishStand.js';
 import { CHANDLERY } from './game/Chandlery.js';
 import { BoatController } from './player/BoatController.js';
@@ -137,6 +138,8 @@ export class App {
 		await progress( 0.06, 'Shaping the island…' );
 		// Patch port: generated in steps, yielding a frame between them (keeps each main-thread block short)
 		this.terrainData = await TerrainData.createAsync( () => progress( 0.06, 'Shaping the island…' ) );
+		// the living tide: slow sea-level cycle, ticked once per frame (pure math + one G write)
+		this.tide = new Tide();
 		this.colliders = new Colliders();
 		// the village flattens building pads into the heightmap: build it before any terrain
 		// data is derived (shore field, GPU textures, meshes)
@@ -631,6 +634,8 @@ fn terrainWetness( xz: vec2f, h: f32 ) -> vec2f {
 			if ( this.ui ) this.ui.ui.toast( this.audio.muted ? 'Sound off' : 'Sound on' );
 
 		}
+		// the living tide runs before the boat so physics sees this frame's sea level
+		this.tide.update( dt );
 		this.boatCtl.update( dt );
 		this.boatSpray.update( dt );
 		this.wake.update( dt );

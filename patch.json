@@ -1,6 +1,6 @@
 {
-  "project": "blendi/tidewater",
-  "version": "1.0.2",
+  "project": "opencode1/ghosttide-isle",
+  "version": "0.1.0",
   "channel": "public",
   "files": "dist",
   "recipe": {
@@ -19,7 +19,7 @@
       }
     ],
     "test": {
-      "minutes": 1
+      "checks": ["tide-cycles", "lamp-donates", "legend-hints"]
     }
   }
 }

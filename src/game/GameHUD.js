@@ -72,6 +72,11 @@ const CSS = /* css */`
 .gm-fuel-bar > span { background: var(--tw-sun); }
 .gm-fuel.is-low .gm-fuel-bar > span { background: var(--tw-coral); }
 .gm-sonar-dots { letter-spacing: 1px; color: var(--tw-aqua); }
+/* Ghosttide Isle: tide pill (current phase + direction, glowing on a king tide) and the lamp meter */
+.gm-tide-arrow { color: var(--tw-aqua); font-size: var(--tw-fs-sm); }
+.gm-tide.is-king { box-shadow: 0 0 14px rgba(var(--tw-sun-rgb), 0.75), inset 0 0 0 1px rgba(var(--tw-sun-rgb), 0.6); }
+.gm-tide.is-king .gm-tide-t { color: var(--tw-sun); }
+.gm-lamp-bar > span { background: linear-gradient(90deg, #ffb45e, #8fe3ff); }
 .gm-shop-row { display: grid; grid-template-columns: 1fr auto; gap: var(--tw-3); align-items: center; padding: var(--tw-2) 0; border-bottom: 1px solid var(--tw-line); }
 .gm-shop-row small { display: block; color: var(--tw-ink-3); font-size: var(--tw-fs-sm); margin-top: 2px; }
 .gm-shop-row .gm-have { color: var(--tw-ink-3); font-size: var(--tw-fs-sm); }
@@ -172,7 +177,12 @@ export class GameHUD {
 		style.textContent = CSS;
 		document.head.append( style );
 
-		this.purse = h( 'div', 'gm-purse tw-glass', `<span class="gm-money">$0</span><span class="gm-cooler"><span class="gm-cooler-label">Cooler</span><span class="gm-cooler-bar"><span></span></span><span class="gm-cooler-kg">0 / 30 kg</span></span><span class="gm-gauge gm-fuel"><span>Fuel</span><span class="gm-cooler-bar gm-fuel-bar"><span></span></span><b class="gm-fuel-l">40 L</b></span><span class="gm-gauge gm-sonar"><span>Sonar</span><b class="gm-sonar-d">0 m</b><span class="gm-sonar-dots"></span></span>` );
+		this.purse = h( 'div', 'gm-purse tw-glass', `<span class="gm-money">$0</span><span class="gm-cooler"><span class="gm-cooler-label">Cooler</span><span class="gm-cooler-bar"><span></span></span><span class="gm-cooler-kg">0 / 30 kg</span></span><span class="gm-gauge gm-tide is-on"><span class="gm-tide-arrow">▲</span><b class="gm-tide-t">Rising</b></span><span class="gm-gauge gm-lamp is-on"><span>Lamp</span><span class="gm-cooler-bar gm-lamp-bar"><span></span></span><b class="gm-lamp-l">0%</b></span><span class="gm-gauge gm-fuel"><span>Fuel</span><span class="gm-cooler-bar gm-fuel-bar"><span></span></span><b class="gm-fuel-l">40 L</b></span><span class="gm-gauge gm-sonar"><span>Sonar</span><b class="gm-sonar-d">0 m</b><span class="gm-sonar-dots"></span></span>` );
+		this.tideEl = this.purse.querySelector( '.gm-tide' );
+		this.tideArrow = this.purse.querySelector( '.gm-tide-arrow' );
+		this.tideT = this.purse.querySelector( '.gm-tide-t' );
+		this.lampBar = this.purse.querySelector( '.gm-lamp-bar > span' );
+		this.lampL = this.purse.querySelector( '.gm-lamp-l' );
 		this.fuelEl = this.purse.querySelector( '.gm-fuel' );
 		this.fuelBar = this.purse.querySelector( '.gm-fuel-bar > span' );
 		this.fuelL = this.purse.querySelector( '.gm-fuel-l' );
@@ -269,6 +279,36 @@ export class GameHUD {
 
 		}
 
+
+		// Ghosttide Isle: tide pill (Low ▲ / High ▼, glowing on a king tide) and the lamp meter
+		{
+			const t = this.game.app.tide;
+			if ( t && this.tideT ) {
+
+				const label = t.isLow ? 'Low' : t.isHigh ? 'High' : ( t.isRising ? 'Rising' : 'Falling' );
+				if ( this._last.tide !== label ) {
+
+					this.tideT.textContent = label;
+					this._last.tide = label;
+
+				}
+
+				const arrow = ( t.isHigh || ( ! t.isLow && ! t.isRising ) ) ? '▼' : '▲';
+				if ( this.tideArrow.textContent !== arrow ) this.tideArrow.textContent = arrow;
+				this.tideEl.classList.toggle( 'is-king', !! ( t.kingTide || t.isKingTide ) );
+
+			}
+
+			const lamp = this.game.lampLevel ?? this.game.lamp ?? 0;
+			if ( this.lampBar ) {
+
+				this.lampBar.style.width = `${ Math.round( lamp * 100 ) }%`;
+				const pct = `${ Math.round( lamp * 100 ) }%`;
+				if ( this.lampL.textContent !== pct ) this.lampL.textContent = pct;
+
+			}
+
+		}
 
 		this.fight.classList.toggle( 'is-on', !! fight );
 		if ( fight ) {

@@ -345,6 +345,8 @@ export const SPECIES = {
 	turtle: { pattern: PATTERN.turtle, body: 1, eye: { u: 0.1, y: 0.04, r: 0.013 }, opercle: 0.2, mouth: { corner: 0.05, y: 0.0, tip: 0.0 }, lateral: 0, arch: 0, scales: 0, scaleVis: 0, iris: 0x302010, irid: 0, metal: 0 },
 
 };
+// Ghosttide Isle: legendary variant (reuses tarpon geometry, no new assets)
+SPECIES.ghosttide = { ...SPECIES.tarpon, pattern: PATTERN.tarpon, scale: 1.6 };
 
 // Skin colours (sRGB): back, flank, belly, fins, fin edges; the shader adds the species'
 // markings (stripes, bars, spots) on top.
@@ -367,6 +369,8 @@ export const SKIN = {
 	needlefish: { back: 0x36766c, flank: 0xb4cccc, belly: 0xeef2f2, fin: 0x76968e, edge: 0x46666c, rough: 0.3 },
 	jack: { back: 0x56768c, flank: 0xbcc8d0, belly: 0xe6ecee, fin: 0x86949c, edge: 0x3c444c, rough: 0.3 },
 	tarpon: { back: 0x364c5c, flank: 0xd4dadc, belly: 0xeef0f2, fin: 0x86949c, edge: 0x4c565c, rough: 0.28 },
+	// Ghosttide Isle: legendary variant (pale phosphorescent, cyan glow fins)
+	ghosttide: { back: 0xe8f4f8, flank: 0xf2fbfc, belly: 0xffffff, fin: 0x9fe8f0, edge: 0x66d8e8, rough: 0.25 },
 	stingray: { back: 0x6c604c, flank: 0x7a6c56, belly: 0xd8d6d0, fin: 0x4c4236, edge: 0x8a7c66, rough: 0.5 },
 	eagleRay: { back: 0x14181e, flank: 0x1c2028, belly: 0xe0e2e2, fin: 0x101418, edge: 0x2a2e36, rough: 0.35 },
 	turtle: { back: 0x3e3220, flank: 0x86683a, belly: 0xc8b884, fin: 0x4a4238, edge: 0x9a9280, rough: 0.45 },

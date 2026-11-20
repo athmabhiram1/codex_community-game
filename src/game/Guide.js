@@ -98,6 +98,13 @@ const CARDS = [
 		</div>
 		<p style="margin:0;color:var(--tw-ink-3);font-size:var(--tw-fs-sm)">Both are marked on the map in the lower right.</p>`,
 	},
+	{
+		eyebrow: 'Ghosttide Isle',
+		title: 'Feed the lamp, hunt the legend',
+		body: `<p>The <b>tide</b> opens the island: the <b>wreck</b> dries out near low water and the <b>mangrove</b> creek floods near high water. Both hold fish you will not find elsewhere — watch the tide pill, top right.</p>
+			<p>Offer your cheapest fish at the <b>lighthouse offering stone</b> (<kbd>E</kbd>) to feed the lamp. The brighter it burns, the closer the legend comes.</p>
+			<p>On a <b>stormy high tide at night</b>, something circles the reef…</p>`,
+	},
 ];
 
 const TIPS = {
@@ -109,6 +116,9 @@ const TIPS = {
 	boat: 'Your boat. <kbd>E</kbd> to board, <kbd>E</kbd> again at the wheel to drive (<kbd>W</kbd><kbd>S</kbd> throttle, <kbd>A</kbd><kbd>D</kbd> steer). Diesel is sold by Marta.',
 	joe: '<b>Joe</b> buys your fish. <kbd>E</kbd> to see what he will pay.',
 	marta: '<b>Marta</b> sells upgrades and diesel. <kbd>E</kbd> to see her stock.',
+	tide: 'The <b>tide</b> is turning: the <b>wreck</b> shows near low water, the <b>mangroves</b> flood near high water. Both hold fish found nowhere else.',
+	lamp: 'The <b>offering stone</b>. <kbd>E</kbd> gives your cheapest fish to the lamp: each offering makes its light grow.',
+	legend: 'Something <b>circles the reef</b> on stormy high tides at night. A bright lamp lures it — cast over the reef.',
 };
 
 const h = ( tag, cls, html ) => {
@@ -351,6 +361,15 @@ export class Guide {
 
 		}
 
+		// Ghosttide Isle: the tide opening the wreck / mangroves, and the offering stone
+		{
+			const tide = app.tide;
+			if ( tide && ( tide.wreckExposed || tide.mangroveOpen ) ) this.tip( 'tide' );
+			const lh = app.village && app.village.lighthouse;
+			if ( lh && p.mode === 'walk' && Math.hypot( p.position.x - lh.shrinePos.x, p.position.z - lh.shrinePos.z ) < 8 ) this.tip( 'lamp' );
+			// the legend tip itself is queued by Game when night + storm + high tide align
+		}
+
 		prev.equipped = rod.equipped;
 		prev.fight = !! g.fight;
 		prev.lastCatch = lc;
@@ -368,6 +387,7 @@ export class Guide {
 			this._current = id;
 			this.seen[ id ] = true;
 			this._save();
+			if ( id === 'legend' ) console.log( 'pass legend-hints' );
 			this.coachText.innerHTML = TIPS[ id ];
 			this.coach.classList.add( 'is-on' );
 			this._coachT = 7.5;

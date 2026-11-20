@@ -31,6 +31,7 @@ export const FISH = {
 	tuna: { name: 'Blackfin tuna', sci: 'Thunnus atlanticus', lw: [ 0.0145, 3.0 ], model: 'tuna', habitat: { deep: 1 }, kg: [ 3, 14 ], price: 16, fight: 0.85, stamina: 16, time: 'dawnDusk', rarity: 0.5 },
 	mahi: { name: 'Mahi-mahi', sci: 'Coryphaena hippurus', lw: [ 0.0079, 3.0 ], model: 'mahi', habitat: { deep: 0.8 }, kg: [ 4, 18 ], price: 14, fight: 0.8, stamina: 15, time: 'day', rarity: 0.4 },
 	tarpon: { name: 'Tarpon', sci: 'Megalops atlanticus', lw: [ 0.0077, 3.02 ], model: 'tarpon', habitat: { pier: 0.35, bay: 0.5, shallows: 0.15 }, kg: [ 10, 45 ], price: 4, fight: 1, stamina: 24, time: 'night', rarity: 0.2 },
+	ghosttide: { name: 'Ghosttide Lanternfish', sci: 'Lampanyctus phantasma', lw: [ 0.008, 3.0 ], model: 'tarpon', habitat: { deep: 1.2, bay: 0.6 }, kg: [ 12, 38 ], price: 45, fight: 1, stamina: 26, time: 'night', rarity: 0.06 },
 };
 
 export const FISH_IDS = Object.keys( FISH );

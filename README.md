@@ -160,3 +160,17 @@ Every push to `main` deploys to GitHub Pages through `.github/workflows/deploy.y
 The code is released under the MIT license; see [LICENSE](LICENSE). Third-party assets (CC0 audio from
 Freesound, CC0 scans from Poly Haven, MIT characters from Microsoft Rocketbox, OFL / Apache fonts) and
 technique references are listed in [CREDITS.md](CREDITS.md).
+
+## Ghosttide Isle
+
+A haunted-tide remix of Tidewater by Dan Greenheck (MIT), ported by Patch. All controls are unchanged.
+
+- **The tide**: a slow 3-minute cycle raises and lowers the sea. The **wreck** dries out near low water
+  and the **mangrove** creek floods near high water — both hold fish found nowhere else. The tide pill
+  (top right) shows Low ▲ / High ▼ and glows on a king tide; the wreck, mangroves and lighthouse are
+  marked on the minimap.
+- **The lamp**: the lighthouse on the west headland keeps a ghost light. Press **E** at its offering
+  stone to donate your cheapest fish — each offering makes the lamp burn brighter (warm to cyan), and
+  the lamp meter tracks it. Donations persist per browser.
+- **The legend**: on a **stormy high tide at night**, something circles the reef. A bright lamp lures
+  the legendary ghosttide — cast over the reef and hold on.

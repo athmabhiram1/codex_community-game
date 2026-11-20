@@ -171,6 +171,76 @@ ok( Object.keys( defaultUpgrades() ).length === Object.keys( UPGRADES ).length &
 	ok( st.buy( 'fishFinder' ) && st.stats.finder === true && st.buy( 'fishFinder' ) === null, 'fish finder: one level' );
 
 }
+// ---- living tide: 3-minute sea-level cycle driving G.seaLevel
+import { Tide } from '../src/game/Tide.js';
+import { TIDE } from '../src/world/WorldLayout.js';
+import { G } from '../src/core/Globals.js';
+{
+	const tide = new Tide();
+	ok( tide.period === 180 && tide.amplitude === 0.55 && tide.baseLevel === 0, 'tide defaults: 180 s period, 0.55 m amplitude, 0 base' );
+	ok( TIDE.period === tide.period && TIDE.amplitude === tide.amplitude, 'WorldLayout TIDE constants match the tide' );
+	ok( TIDE.wreck && TIDE.mangrove && TIDE.lighthouse, 'TIDE marks the wreck, mangrove and lighthouse' );
+	// quarter period: high water
+	const high = new Tide();
+	for ( let i = 0; i < Math.round( 45 * 60 ); i ++ ) high.update( 1 / 60 );
+	ok( Math.abs( high.level - 0.55 ) < 1e-6, `quarter period hits high water (level=${ high.level })` );
+	ok( high.isHigh && high.phaseName === 'High tide' && high.mangroveOpen && ! high.wreckExposed, 'high water reads High tide, mangrove open, wreck covered' );
+	ok( G.seaLevel.value === high.baseLevel + high.level, 'tide writes G.seaLevel every frame' );
+	// full period: phase wraps and the cycle covers every state
+	const full = new Tide();
+	let lo = Infinity, hi = - Infinity, sawHigh = false, sawLow = false, sawRising = false, sawFalling = false;
+	let sawWreck = false, sawMangrove = false, sawKing = false, wreckOnlyLow = true, mangroveOnlyHigh = true, bounded = true;
+	for ( let i = 0; i < Math.round( full.period * 60 ); i ++ ) {
+		full.update( 1 / 60 );
+		if ( ! Number.isFinite( full.level ) || ! Number.isFinite( G.seaLevel.value ) || Math.abs( full.normalized ) > 1 + 1e-9 ) bounded = false;
+		lo = Math.min( lo, full.level ); hi = Math.max( hi, full.level );
+		if ( full.isHigh ) sawHigh = true;
+		if ( full.isLow ) sawLow = true;
+		if ( full.phaseName === 'Rising' ) sawRising = true;
+		if ( full.phaseName === 'Falling' ) sawFalling = true;
+		if ( full.wreckExposed ) sawWreck = true;
+		if ( full.wreckExposed !== ( full.level < - 0.3 ) ) wreckOnlyLow = false;
+		if ( full.mangroveOpen ) sawMangrove = true;
+		if ( full.mangroveOpen !== ( full.level > 0.3 ) ) mangroveOnlyHigh = false;
+		if ( full.kingTide ) sawKing = true;
+	}
+	ok( Math.abs( full.level ) < 1e-6, `full period returns to mean level (level=${ full.level })` );
+	ok( bounded, 'level, normalized and G.seaLevel stay finite and normalized within ±1 over a full cycle' );
+	ok( lo >= - 0.6 && hi <= 0.6, `level stays within ±0.6 m (lo=${ lo.toFixed( 3 ) }, hi=${ hi.toFixed( 3 ) })` );
+	ok( lo < - 0.5 && hi > 0.5, 'tide reaches near ±amplitude at both ends' );
+	ok( sawHigh && sawLow && sawRising && sawFalling, 'tide visits high, low, rising and falling phases' );
+	ok( sawWreck && wreckOnlyLow, 'wreck exposed only when low' );
+	ok( sawMangrove && mangroveOnlyHigh, 'mangrove open only when high' );
+	ok( sawKing, 'king tide flags near the top of the cycle' );
+	// ragged real-world steps: still no NaN
+	const rough = new Tide();
+	for ( let i = 0; i < 1000; i ++ ) rough.update( 0.13 );
+	ok( Number.isFinite( rough.level ) && Number.isFinite( rough.phase ) && Number.isFinite( G.seaLevel.value ), 'no NaN after 1000 updates' );
+}
 console.log( `value check ${ value }` );
+// ---- Ghosttide Isle: the legendary Ghosttide Lanternfish
+{
+	let s = 987654321;
+	const srng = () => ( ( s = ( s * 1664525 + 1013904223 ) >>> 0 ) / 4294967296 );
+	const deepBay = habitatAt( { depth: 40, reefDist: 300, pierDist: 400 } );
+	// never picked at noon, calm, low tide (200 picks)
+	let noonGhost = 0;
+	for ( let i = 0; i < 200; i ++ ) if ( pickSpecies( deepBay, 12, srng, { storm: 0, lamp: 0, tideLevel: - 0.5 } ) === 'ghosttide' ) noonGhost ++;
+	ok( noonGhost === 0, 'ghosttide never bites at noon calm low tide' );
+	// pickable at 23h in storm + lamp light on a king tide (200 seeded picks, expect >= 1)
+	let nightGhost = 0;
+	for ( let i = 0; i < 200; i ++ ) if ( pickSpecies( deepBay, 23, srng, { storm: 1, lamp: 1, tideLevel: 0.5 } ) === 'ghosttide' ) nightGhost ++;
+	ok( nightGhost >= 1, `ghosttide bites on a stormy lit king-tide night (${ nightGhost }/200)` );
+	// normal species distribution unchanged at noon: no tarpon, no ghosttide by day
+	let dayTarpon = 0, dayGhost = 0;
+	for ( let i = 0; i < 500; i ++ ) {
+
+		const a = pickSpecies( deepBay, 12, srng );
+		if ( a === 'tarpon' ) dayTarpon ++;
+		if ( a === 'ghosttide' ) dayGhost ++;
+
+	}
+	ok( dayTarpon === 0 && dayGhost === 0, 'no tarpon or ghosttide by day offshore' );
+}
 console.log( fails ? `${ fails } FAILED` : 'all passed' );
 process.exit( fails ? 1 : 0 );
