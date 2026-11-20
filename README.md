@@ -3,20 +3,57 @@ kind: game
 engine: WebGPU
 ---
 
-# Tidewater
+# Ghosttide Isle
 
-**By Dan Greenheck ([dgreenheck/tidewater](https://github.com/dgreenheck/tidewater)), under the MIT licence.** This repo is Patch's port of his game, made so it runs on Patch. Patch didn't make it. He can claim it on Patch. It's `blendi/tidewater` there. `AGENTS.md` says how to run, check and change it, and `UPSTREAM.md` which commit it came from and what the port changed. The rest of this README is his.
+A tropical fishing game with a living three-minute tide and a lighthouse ghost legend. Fish from the pier,
+beach, or boat; sell your catch; and explore the reef as the tide reveals the wreck and floods the mangrove.
+On a stormy high tide at night, feed the lighthouse lamp and look for what circles the island.
 
-An island fishing game for the browser. Cast from the pier, the beach or your own boat, fight the fish,
-sell your catch to Joe at the fish stand, and spend it on better gear at Marta's chandlery. Around it is a
-real-time tropical island and ocean: swim the reef, drive the boat out to deep water, and watch a humpback
-breach. It runs directly on WebGPU and WGSL with its own small rendering engine, no framework.
+![Ghosttide Isle title screen showing the island pier](docs/ghosttide-isle.png)
 
-**Play it:** https://dgreenheck.github.io/tidewater/
+**Play locally:** <http://127.0.0.1:5189/> (available while the development server is running)
 
-![Fishing off the pier at golden hour](docs/screenshot.jpg)
+## Quick start
 
-![The beach in the late afternoon](docs/screenshot-beach.jpg)
+### Requirements
+
+- Windows, macOS, or Linux.
+- A recent Chrome or Edge browser with WebGPU enabled and a capable GPU.
+- Node.js and npm.
+
+The first launch compiles many GPU shaders and may take a minute or two. Later launches are faster because
+the browser caches the compiled shaders.
+
+### Install and run
+
+```sh
+git clone https://github.com/athmabhiram1/codex_community-game.git
+cd codex_community-game
+npm install
+npm run dev
+```
+
+Open the local address printed by Vite (normally <http://127.0.0.1:5189/>). To create a production build:
+
+```sh
+npm run build
+```
+
+The build output is written to `dist/`.
+
+## Push to GitHub
+
+This checkout already uses `origin` for the game repository. Add GitHub as a second remote:
+
+```sh
+git remote add github https://github.com/athmabhiram1/codex_community-game.git
+git push -u github main
+```
+
+For later updates, use `git push` (the branch will track GitHub after the first push). If your GitHub repo
+already has commits of its own, sync those before pushing to avoid a rejected non-fast-forward update.
+
+See [LICENSE](LICENSE) for the code license and [CREDITS.md](CREDITS.md) for asset and audio credits.
 
 ## Requirements
 
@@ -128,16 +165,6 @@ Add these to the URL, for example `?fly&noAudio`:
 | `noVeg` | Skip vegetation |
 | `noSim` | Skip the swash (shallow-water) simulation |
 
-## Running locally
-
-```sh
-npm install
-npm run dev      # http://127.0.0.1:5189
-npm run build    # static build in dist/
-```
-
-Every push to `main` deploys to GitHub Pages through `.github/workflows/deploy.yml`.
-
 ## Project layout
 
 | Folder | Contents |
@@ -161,16 +188,3 @@ The code is released under the MIT license; see [LICENSE](LICENSE). Third-party 
 Freesound, CC0 scans from Poly Haven, MIT characters from Microsoft Rocketbox, OFL / Apache fonts) and
 technique references are listed in [CREDITS.md](CREDITS.md).
 
-## Ghosttide Isle
-
-A haunted-tide remix of Tidewater by Dan Greenheck (MIT), ported by Patch. All controls are unchanged.
-
-- **The tide**: a slow 3-minute cycle raises and lowers the sea. The **wreck** dries out near low water
-  and the **mangrove** creek floods near high water — both hold fish found nowhere else. The tide pill
-  (top right) shows Low ▲ / High ▼ and glows on a king tide; the wreck, mangroves and lighthouse are
-  marked on the minimap.
-- **The lamp**: the lighthouse on the west headland keeps a ghost light. Press **E** at its offering
-  stone to donate your cheapest fish — each offering makes the lamp burn brighter (warm to cyan), and
-  the lamp meter tracks it. Donations persist per browser.
-- **The legend**: on a **stormy high tide at night**, something circles the reef. A bright lamp lures
-  the legendary ghosttide — cast over the reef and hold on.
